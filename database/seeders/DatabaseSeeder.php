@@ -14,12 +14,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Mwakai',
-            'email' => 'mwakaimwambala@gmail.com',
-            'password' => Hash::make('KenyaTrails!123'),
-        ]);
+        // User::factory()->create([
+        //     'name' => 'Mwakai',
+        //     'email' => 'mwakaimwambala@gmail.com',
+        //     'password' => Hash::make('KenyaTrails!123'),
+        // ]);
     }
 }
