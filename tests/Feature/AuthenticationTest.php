@@ -84,70 +84,6 @@ describe('login', function () {
     });
 });
 
-describe('register', function () {
-    it('allows a super admin to register a new user', function () {
-        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
-
-        $response = $this->actingAs($superAdmin)
-            ->postJson('/api/admin/register', [
-                'first_name' => 'New',
-                'last_name' => 'User',
-                'email' => 'newuser@example.com',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
-                'role_id' => $this->adminRole->id,
-            ]);
-
-        $response->assertCreated()
-            ->assertJsonStructure([
-                'message',
-                'access_token',
-                'user' => [
-                    'id',
-                    'first_name',
-                    'last_name',
-                    'email',
-                ],
-            ]);
-
-        $this->assertDatabaseHas('users', [
-            'email' => 'newuser@example.com',
-            'first_name' => 'New',
-            'last_name' => 'User',
-            'created_by' => $superAdmin->id,
-        ]);
-    });
-
-    it('fails to register without authentication', function () {
-        $response = $this->postJson('/api/admin/register', [
-            'first_name' => 'New',
-            'last_name' => 'User',
-            'email' => 'newuser@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            'role_id' => $this->adminRole->id,
-        ]);
-
-        $response->assertUnauthorized();
-    });
-
-    it('validates required fields when registering', function () {
-        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
-
-        $response = $this->actingAs($superAdmin)
-            ->postJson('/api/admin/register', []);
-
-        $response->assertUnprocessable()
-            ->assertJsonValidationErrors([
-                'first_name',
-                'last_name',
-                'email',
-                'password',
-                'role_id',
-            ]);
-    });
-});
-
 describe('logout', function () {
     it('logs out a user', function () {
         $user = User::factory()->withRole($this->superAdminRole)->create();
@@ -182,7 +118,7 @@ describe('me', function () {
     });
 });
 
-describe('getAllUsers', function () {
+describe('list users', function () {
     it('allows users with users.view permission to get all users', function () {
         $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
         User::factory()->withRole($this->adminRole)->count(5)->create();
@@ -191,6 +127,72 @@ describe('getAllUsers', function () {
             ->getJson('/api/admin/users');
 
         $response->assertOk()
-            ->assertJsonCount(6, 'users');
+            ->assertJsonCount(6, 'data.users')
+            ->assertJsonStructure([
+                'data' => ['users'],
+                'meta' => ['current_page', 'last_page', 'per_page', 'total'],
+            ]);
+    });
+
+    it('paginates users with custom per_page', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        User::factory()->withRole($this->adminRole)->count(10)->create();
+
+        $response = $this->actingAs($superAdmin)
+            ->getJson('/api/admin/users?per_page=5');
+
+        $response->assertOk()
+            ->assertJsonCount(5, 'data.users')
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonPath('meta.total', 11)
+            ->assertJsonPath('meta.last_page', 3);
+    });
+
+    it('searches users by name', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        User::factory()->withRole($this->adminRole)->create(['first_name' => 'John', 'last_name' => 'Doe']);
+        User::factory()->withRole($this->adminRole)->create(['first_name' => 'Jane', 'last_name' => 'Smith']);
+
+        $response = $this->actingAs($superAdmin)
+            ->getJson('/api/admin/users?search=John');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.users');
+    });
+
+    it('searches users by email', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        User::factory()->withRole($this->adminRole)->create(['email' => 'john@example.com']);
+        User::factory()->withRole($this->adminRole)->create(['email' => 'jane@example.com']);
+
+        $response = $this->actingAs($superAdmin)
+            ->getJson('/api/admin/users?search=john@example');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.users');
+    });
+
+    it('filters users by role', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        User::factory()->withRole($this->adminRole)->count(3)->create();
+        User::factory()->withRole($this->superAdminRole)->count(2)->create();
+
+        $response = $this->actingAs($superAdmin)
+            ->getJson("/api/admin/users?role_id={$this->adminRole->id}");
+
+        $response->assertOk()
+            ->assertJsonCount(3, 'data.users');
+    });
+
+    it('filters users by status', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        User::factory()->withRole($this->adminRole)->count(3)->create();
+        User::factory()->withRole($this->adminRole)->inactive()->count(2)->create();
+
+        $response = $this->actingAs($superAdmin)
+            ->getJson('/api/admin/users?status=inactive');
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data.users');
     });
 });

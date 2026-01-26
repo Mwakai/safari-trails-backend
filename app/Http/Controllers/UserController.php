@@ -17,6 +17,53 @@ class UserController extends Controller
 {
     use ApiResponses;
 
+    public function index(Request $request): JsonResponse
+    {
+        $response = Gate::inspect('viewAny', User::class);
+
+        if ($response->denied()) {
+            return $this->error($response->message(), 403);
+        }
+
+        $query = User::with(['role', 'company']);
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('role_id')) {
+            $query->where('role_id', $request->input('role_id'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->input('company_id'));
+        }
+
+        $perPage = $request->input('per_page', 15);
+        $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return response()->json([
+            'data' => [
+                'users' => UserResource::collection($users),
+            ],
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ],
+        ]);
+    }
+
     public function store(StoreUserRequest $request): JsonResponse
     {
         $response = Gate::inspect('create', User::class);

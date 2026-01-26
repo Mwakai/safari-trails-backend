@@ -90,15 +90,4 @@ class AuthController extends Controller
             'user' => new UserResource($user),
         ]);
     }
-
-    public function getAllUsers(): JsonResponse
-    {
-        $users = User::with(['role', 'company'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'users' => UserResource::collection($users),
-        ]);
-    }
 }

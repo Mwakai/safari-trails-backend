@@ -64,11 +64,11 @@ describe('permission middleware', function () {
             ->assertJson(['message' => 'Your account is inactive.']);
     });
 
-    it('allows admin to register new users', function () {
+    it('allows admin to create new users', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
 
         $response = $this->actingAs($admin)
-            ->postJson('/api/admin/register', [
+            ->postJson('/api/admin/users', [
                 'first_name' => 'Test',
                 'last_name' => 'User',
                 'email' => 'test@example.com',
@@ -80,11 +80,11 @@ describe('permission middleware', function () {
         $response->assertCreated();
     });
 
-    it('denies content manager from registering new users', function () {
+    it('denies content manager from creating new users', function () {
         $contentManager = User::factory()->withRole($this->contentManagerRole)->create();
 
         $response = $this->actingAs($contentManager)
-            ->postJson('/api/admin/register', [
+            ->postJson('/api/admin/users', [
                 'first_name' => 'Test',
                 'last_name' => 'User',
                 'email' => 'test@example.com',

@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\AmenityController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,7 +21,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
         ->post('/users', [UserController::class, 'store']);
 
     Route::middleware('permission:users.view')
-        ->get('/users', [AuthController::class, 'getAllUsers']);
+        ->get('/users', [UserController::class, 'index']);
 
     Route::middleware('permission:users.view')
         ->get('/users/{user}', [UserController::class, 'show']);
@@ -28,6 +31,18 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::middleware('permission:users.delete')
         ->delete('/users/{user}', [UserController::class, 'destroy']);
+
+    Route::get('/roles', [RoleController::class, 'index']);
+    Route::get('/roles/{role}', [RoleController::class, 'show']);
+
+    Route::get('/companies', [CompanyController::class, 'index']);
+    Route::get('/companies/{company}', [CompanyController::class, 'show']);
+
+    Route::get('/amenities', [AmenityController::class, 'index']);
+    Route::post('/amenities', [AmenityController::class, 'store']);
+    Route::get('/amenities/{amenity}', [AmenityController::class, 'show']);
+    Route::match(['put', 'patch'], '/amenities/{amenity}', [AmenityController::class, 'update']);
+    Route::delete('/amenities/{amenity}', [AmenityController::class, 'destroy']);
 
     Route::get('/dashboard', function () {});
 });
