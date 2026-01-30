@@ -3,6 +3,7 @@
 use App\Http\Controllers\AmenityController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -43,6 +44,12 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/amenities/{amenity}', [AmenityController::class, 'show']);
     Route::match(['put', 'patch'], '/amenities/{amenity}', [AmenityController::class, 'update']);
     Route::delete('/amenities/{amenity}', [AmenityController::class, 'destroy']);
+
+    Route::get('/media', [MediaController::class, 'index']);
+    Route::post('/media', [MediaController::class, 'store']);
+    Route::get('/media/{media}', [MediaController::class, 'show']);
+    Route::match(['put', 'patch'], '/media/{media}', [MediaController::class, 'update']);
+    Route::delete('/media/{media}', [MediaController::class, 'destroy']);
 
     Route::get('/dashboard', function () {});
 });
