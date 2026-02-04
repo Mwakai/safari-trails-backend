@@ -87,7 +87,7 @@ class MediaService
         $duration = null;
 
         if ($type === MediaType::Image && in_array($mimeType, self::IMAGE_MIME_TYPES)) {
-            $imageSize = @getimagesize($file->getRealPath());
+            $imageSize = @\getimagesize($file->getRealPath());
             if ($imageSize !== false) {
                 $width = $imageSize[0];
                 $height = $imageSize[1];
@@ -161,8 +161,8 @@ class MediaService
 
         $sourceImage = $this->fixExifOrientation($sourcePath, $sourceImage, $extension);
 
-        $originalWidth = imagesx($sourceImage);
-        $originalHeight = imagesy($sourceImage);
+        $originalWidth = \imagesx($sourceImage);
+        $originalHeight = \imagesy($sourceImage);
 
         $variants = [];
 
@@ -175,25 +175,25 @@ class MediaService
                 $newHeight = (int) round(($maxWidth / $originalWidth) * $originalHeight);
             }
 
-            $resized = imagecreatetruecolor($newWidth, $newHeight);
+            $resized = \imagecreatetruecolor($newWidth, $newHeight);
 
             if ($extension === 'png' || $extension === 'webp') {
-                imagealphablending($resized, false);
-                imagesavealpha($resized, true);
+                \imagealphablending($resized, false);
+                \imagesavealpha($resized, true);
             }
 
-            imagecopyresampled($resized, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
+            \imagecopyresampled($resized, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
 
             $variantFilename = $name.'_'.$variant.'.'.$extension;
             $variantPath = Storage::disk('public')->path('uploads/'.$variantFilename);
 
             $this->saveImageToFile($resized, $variantPath, $extension);
-            imagedestroy($resized);
+            \imagedestroy($resized);
 
             $variants[$variant] = 'uploads/'.$variantFilename;
         }
 
-        imagedestroy($sourceImage);
+        \imagedestroy($sourceImage);
 
         return $variants;
     }
@@ -214,10 +214,10 @@ class MediaService
     private function createImageFromFile(string $path, string $extension): ?\GdImage
     {
         return match ($extension) {
-            'jpg', 'jpeg' => @imagecreatefromjpeg($path) ?: null,
-            'png' => @imagecreatefrompng($path) ?: null,
-            'gif' => @imagecreatefromgif($path) ?: null,
-            'webp' => @imagecreatefromwebp($path) ?: null,
+            'jpg', 'jpeg' => @\imagecreatefromjpeg($path) ?: null,
+            'png' => @\imagecreatefrompng($path) ?: null,
+            'gif' => @\imagecreatefromgif($path) ?: null,
+            'webp' => @\imagecreatefromwebp($path) ?: null,
             default => null,
         };
     }
@@ -225,10 +225,10 @@ class MediaService
     private function saveImageToFile(\GdImage $image, string $path, string $extension): void
     {
         match ($extension) {
-            'jpg', 'jpeg' => imagejpeg($image, $path, 85),
-            'png' => imagepng($image, $path, 8),
-            'gif' => imagegif($image, $path),
-            'webp' => imagewebp($image, $path, 85),
+            'jpg', 'jpeg' => \imagejpeg($image, $path, 85),
+            'png' => \imagepng($image, $path, 8),
+            'gif' => \imagegif($image, $path),
+            'webp' => \imagewebp($image, $path, 85),
             default => null,
         };
 
@@ -243,21 +243,21 @@ class MediaService
             return $image;
         }
 
-        $exif = @exif_read_data($path);
+        $exif = @\exif_read_data($path);
 
         if (! $exif || ! isset($exif['Orientation'])) {
             return $image;
         }
 
         $rotated = match ($exif['Orientation']) {
-            3 => imagerotate($image, 180, 0),
-            6 => imagerotate($image, -90, 0),
-            8 => imagerotate($image, 90, 0),
+            3 => \imagerotate($image, 180, 0),
+            6 => \imagerotate($image, -90, 0),
+            8 => \imagerotate($image, 90, 0),
             default => $image,
         };
 
         if ($rotated !== $image && $rotated !== false) {
-            imagedestroy($image);
+            \imagedestroy($image);
 
             return $rotated;
         }
