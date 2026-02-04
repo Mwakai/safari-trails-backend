@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\TrailController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +51,16 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/media/{media}', [MediaController::class, 'show']);
     Route::match(['put', 'patch'], '/media/{media}', [MediaController::class, 'update']);
     Route::delete('/media/{media}', [MediaController::class, 'destroy']);
+
+    Route::get('/trails', [TrailController::class, 'index']);
+    Route::post('/trails', [TrailController::class, 'store']);
+    Route::get('/trails/counties', [TrailController::class, 'counties']);
+    Route::get('/trails/difficulties', [TrailController::class, 'difficulties']);
+    Route::get('/trails/{trail}', [TrailController::class, 'show']);
+    Route::match(['put', 'patch'], '/trails/{trail}', [TrailController::class, 'update']);
+    Route::patch('/trails/{trail}/status', [TrailController::class, 'updateStatus']);
+    Route::delete('/trails/{trail}', [TrailController::class, 'destroy']);
+    Route::post('/trails/{trail}/restore', [TrailController::class, 'restore']);
 
     Route::get('/dashboard', function () {});
 });
