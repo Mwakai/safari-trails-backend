@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\TrailDifficulty;
 use App\Enums\TrailImageType;
+use App\Enums\TrailStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,7 +22,7 @@ class StoreTrailRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:trails,slug'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:trails,slug'],
             'description' => ['required', 'string'],
             'short_description' => ['nullable', 'string', 'max:500'],
             'difficulty' => ['required', Rule::enum(TrailDifficulty::class)],
@@ -42,6 +43,7 @@ class StoreTrailRequest extends FormRequest
             'route_b_description' => ['nullable', 'string'],
             'route_b_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'route_b_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'status' => ['nullable', Rule::enum(TrailStatus::class)],
             'featured_image_id' => ['nullable', 'integer', 'exists:media,id'],
             'video_url' => ['nullable', 'string', 'max:500', 'url'],
             'amenity_ids' => ['nullable', 'array'],

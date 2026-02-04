@@ -7,6 +7,7 @@ use App\Models\Trail;
 use App\Models\TrailGpx;
 use App\Models\TrailImage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TrailService
 {
@@ -18,9 +19,12 @@ class TrailService
     public function createTrail(array $data, int $userId): Trail
     {
         return DB::transaction(function () use ($data, $userId) {
+            $slug = $data['slug'] ?? Str::slug($data['name']);
+            $slug = $this->ensureUniqueSlug($slug);
+
             $trail = Trail::create([
                 'name' => $data['name'],
-                'slug' => $data['slug'],
+                'slug' => $slug,
                 'description' => $data['description'],
                 'short_description' => $data['short_description'] ?? null,
                 'difficulty' => $data['difficulty'],
@@ -43,7 +47,10 @@ class TrailService
                 'route_b_longitude' => $data['route_b_longitude'] ?? null,
                 'featured_image_id' => $data['featured_image_id'] ?? null,
                 'video_url' => $data['video_url'] ?? null,
-                'status' => TrailStatus::Draft,
+                'status' => $data['status'] ?? TrailStatus::Draft,
+                'published_at' => isset($data['status']) && $data['status'] === TrailStatus::Published->value
+                    ? now()
+                    : null,
                 'created_by' => $userId,
             ]);
 
@@ -65,6 +72,13 @@ class TrailService
         return DB::transaction(function () use ($trail, $data, $userId) {
             $trailFields = collect($data)->except(['amenity_ids', 'images', 'gpx_files'])->toArray();
             $trailFields['updated_by'] = $userId;
+
+            if (isset($trailFields['status'])
+                && $trailFields['status'] === TrailStatus::Published->value
+                && ! $trail->published_at
+            ) {
+                $trailFields['published_at'] = now();
+            }
 
             $trail->update($trailFields);
 
@@ -133,5 +147,22 @@ class TrailService
                 'created_at' => now(),
             ]);
         }
+    }
+
+    private function ensureUniqueSlug(string $slug, ?int $excludeId = null): string
+    {
+        $original = $slug;
+        $counter = 1;
+
+        while (Trail::query()
+            ->where('slug', $slug)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->exists()
+        ) {
+            $slug = $original.'-'.$counter;
+            $counter++;
+        }
+
+        return $slug;
     }
 }
