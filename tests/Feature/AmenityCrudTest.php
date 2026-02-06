@@ -67,14 +67,11 @@ describe('create amenity', function () {
             ->postJson('/api/admin/amenities', [
                 'name' => 'Waterfall',
                 'slug' => 'waterfall',
-                'icon' => 'waterfall-icon',
-                'description' => 'A beautiful waterfall on the trail',
             ]);
 
         $response->assertCreated()
             ->assertJsonPath('data.amenity.name', 'Waterfall')
             ->assertJsonPath('data.amenity.slug', 'waterfall')
-            ->assertJsonPath('data.amenity.icon', 'waterfall-icon')
             ->assertJsonPath('data.amenity.is_active', true);
 
         $this->assertDatabaseHas('amenities', [
@@ -207,29 +204,25 @@ describe('update amenity', function () {
         $response = $this->actingAs($contentManager)
             ->putJson("/api/admin/amenities/{$amenity->id}", [
                 'name' => 'Scenic Waterfall',
-                'description' => 'Updated description',
             ]);
 
         $response->assertOk()
-            ->assertJsonPath('data.amenity.name', 'Scenic Waterfall')
-            ->assertJsonPath('data.amenity.description', 'Updated description');
+            ->assertJsonPath('data.amenity.name', 'Scenic Waterfall');
     });
 
     it('allows partial updates using PATCH', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
         $amenity = Amenity::factory()->create([
             'name' => 'Waterfall',
-            'description' => 'Original description',
         ]);
 
         $response = $this->actingAs($admin)
             ->patchJson("/api/admin/amenities/{$amenity->id}", [
-                'description' => 'Updated description',
+                'name' => 'Updated Waterfall',
             ]);
 
         $response->assertOk()
-            ->assertJsonPath('data.amenity.name', 'Waterfall')
-            ->assertJsonPath('data.amenity.description', 'Updated description');
+            ->assertJsonPath('data.amenity.name', 'Updated Waterfall');
     });
 
     it('validates slug uniqueness excluding current amenity', function () {

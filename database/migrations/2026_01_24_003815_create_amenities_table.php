@@ -15,8 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->string('icon')->nullable();
-            $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MediaType;
+use App\Traits\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 class Media extends Model
 {
     /** @use HasFactory<\Database\Factories\MediaFactory> */
-    use HasFactory;
+    use Filterable, HasFactory;
 
     use SoftDeletes;
 

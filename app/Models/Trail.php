@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\TrailDifficulty;
 use App\Enums\TrailImageType;
 use App\Enums\TrailStatus;
+use App\Traits\Filterable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Trail extends Model
 {
     /** @use HasFactory<\Database\Factories\TrailFactory> */
-    use HasFactory;
+    use Filterable, HasFactory;
 
     use SoftDeletes;
 

@@ -129,8 +129,10 @@ describe('list users', function () {
         $response->assertOk()
             ->assertJsonCount(6, 'data.users')
             ->assertJsonStructure([
-                'data' => ['users'],
-                'meta' => ['current_page', 'last_page', 'per_page', 'total'],
+                'data' => [
+                    'users',
+                    'meta' => ['current_page', 'last_page', 'per_page', 'total'],
+                ],
             ]);
     });
 
@@ -143,9 +145,9 @@ describe('list users', function () {
 
         $response->assertOk()
             ->assertJsonCount(5, 'data.users')
-            ->assertJsonPath('meta.per_page', 5)
-            ->assertJsonPath('meta.total', 11)
-            ->assertJsonPath('meta.last_page', 3);
+            ->assertJsonPath('data.meta.per_page', 5)
+            ->assertJsonPath('data.meta.total', 11)
+            ->assertJsonPath('data.meta.last_page', 3);
     });
 
     it('searches users by name', function () {

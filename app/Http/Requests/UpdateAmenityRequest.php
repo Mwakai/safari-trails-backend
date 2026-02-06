@@ -20,8 +20,6 @@ class UpdateAmenityRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', Rule::unique('amenities', 'slug')->ignore($this->route('amenity'))],
-            'icon' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['nullable', 'boolean'],
         ];
     }
@@ -35,8 +33,6 @@ class UpdateAmenityRequest extends FormRequest
             'name.max' => 'Amenity name must not exceed 255 characters',
             'slug.max' => 'Slug must not exceed 255 characters',
             'slug.unique' => 'This slug is already in use',
-            'icon.max' => 'Icon must not exceed 255 characters',
-            'description.max' => 'Description must not exceed 1000 characters',
             'is_active.boolean' => 'Active status must be true or false',
         ];
     }

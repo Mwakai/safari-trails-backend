@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TrailStatus;
+use App\Filters\TrailFilter;
+use App\Http\Requests\ListTrailsRequest;
 use App\Http\Requests\StoreTrailRequest;
 use App\Http\Requests\UpdateTrailRequest;
 use App\Http\Requests\UpdateTrailStatusRequest;
@@ -13,7 +15,6 @@ use App\Services\ActivityLogger;
 use App\Services\TrailService;
 use App\Traits\ApiResponses;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
@@ -23,7 +24,7 @@ class TrailController extends Controller
 
     public function __construct(private TrailService $trailService) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(ListTrailsRequest $request, TrailFilter $filters): JsonResponse
     {
         $response = Gate::inspect('viewAny', Trail::class);
 
@@ -31,30 +32,13 @@ class TrailController extends Controller
             return $this->error($response->message(), 403);
         }
 
-        $query = Trail::query()->with('featuredImage')->latest();
+        $query = Trail::query()
+            ->with('featuredImage')
+            ->filter($filters);
 
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('location_name', 'like', "%{$search}%")
-                    ->orWhere('county', 'like', "%{$search}%");
-            });
-        }
+        $filters->applyTrailSorting($query);
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        if ($request->filled('difficulty')) {
-            $query->where('difficulty', $request->input('difficulty'));
-        }
-
-        if ($request->filled('county')) {
-            $query->where('county', $request->input('county'));
-        }
-
-        $trails = $query->paginate(15);
+        $trails = $query->paginate($filters->perPage());
 
         return $this->ok('Trails retrieved', [
             'trails' => TrailListResource::collection($trails),

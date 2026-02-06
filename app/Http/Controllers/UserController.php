@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserStatus;
+use App\Filters\UserFilter;
+use App\Http\Requests\ListUsersRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
@@ -17,7 +19,7 @@ class UserController extends Controller
 {
     use ApiResponses;
 
-    public function index(Request $request): JsonResponse
+    public function index(ListUsersRequest $request, UserFilter $filters): JsonResponse
     {
         $response = Gate::inspect('viewAny', User::class);
 
@@ -25,36 +27,16 @@ class UserController extends Controller
             return $this->error($response->message(), 403);
         }
 
-        $query = User::with(['role', 'company']);
+        $query = User::query()
+            ->with(['role', 'company'])
+            ->filter($filters);
 
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
+        $filters->applyUserSorting($query);
 
-        if ($request->filled('role_id')) {
-            $query->where('role_id', $request->input('role_id'));
-        }
+        $users = $query->paginate($filters->perPage());
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        if ($request->filled('company_id')) {
-            $query->where('company_id', $request->input('company_id'));
-        }
-
-        $perPage = $request->input('per_page', 15);
-        $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
-
-        return response()->json([
-            'data' => [
-                'users' => UserResource::collection($users),
-            ],
+        return $this->ok('Users retrieved', [
+            'users' => UserResource::collection($users),
             'meta' => [
                 'current_page' => $users->currentPage(),
                 'last_page' => $users->lastPage(),

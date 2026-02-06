@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Filters\MediaFilter;
+use App\Http\Requests\ListMediaRequest;
 use App\Http\Requests\StoreMediaRequest;
 use App\Http\Requests\UpdateMediaRequest;
 use App\Http\Resources\MediaResource;
@@ -9,7 +11,6 @@ use App\Models\Media;
 use App\Services\MediaService;
 use App\Traits\ApiResponses;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class MediaController extends Controller
@@ -18,7 +19,7 @@ class MediaController extends Controller
 
     public function __construct(private MediaService $mediaService) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(ListMediaRequest $request, MediaFilter $filters): JsonResponse
     {
         $response = Gate::inspect('viewAny', Media::class);
 
@@ -26,13 +27,13 @@ class MediaController extends Controller
             return $this->error($response->message(), 403);
         }
 
-        $query = Media::query()->with('uploadedBy')->latest();
+        $query = Media::query()
+            ->with('uploadedBy')
+            ->filter($filters);
 
-        if ($request->filled('type')) {
-            $query->where('type', $request->input('type'));
-        }
+        $filters->applyMediaSorting($query);
 
-        $media = $query->paginate(20);
+        $media = $query->paginate($filters->perPage(20));
 
         return $this->ok('Media retrieved', [
             'media' => MediaResource::collection($media),

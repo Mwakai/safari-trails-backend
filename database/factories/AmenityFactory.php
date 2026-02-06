@@ -38,8 +38,6 @@ class AmenityFactory extends Factory
         return [
             'name' => $name,
             'slug' => Str::slug($name),
-            'icon' => fake()->optional()->word(),
-            'description' => fake()->optional()->sentence(),
             'is_active' => true,
         ];
     }

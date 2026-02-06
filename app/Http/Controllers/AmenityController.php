@@ -42,8 +42,6 @@ class AmenityController extends Controller
         $amenity = Amenity::create([
             'name' => $data['name'],
             'slug' => $data['slug'],
-            'icon' => $data['icon'] ?? null,
-            'description' => $data['description'] ?? null,
             'is_active' => $data['is_active'] ?? true,
             'created_by' => $request->user()->id,
         ]);

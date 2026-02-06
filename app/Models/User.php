@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserStatus;
+use App\Traits\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use Filterable, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * @var list<string>

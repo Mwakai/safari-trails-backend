@@ -18,23 +18,7 @@ class TrailFactory extends Factory
      */
     public function definition(): array
     {
-        $name = fake()->unique()->randomElement([
-            'Chania Falls Trail',
-            'Karura Forest Loop',
-            'Mount Longonot Summit',
-            'Ngong Hills Traverse',
-            'Oloolua Nature Trail',
-            'Aberdare Elephant Hill',
-            "Hell's Gate Gorge Walk",
-            'Mount Kenya Sirimon Route',
-            'Menengai Crater Rim',
-            'Kereita Forest Trail',
-            'Lukenya Hill Climb',
-            'Fourteen Falls Path',
-            'Elephant Hill Summit',
-            'Nairobi River Trail',
-            'Karura Waterfall Circuit',
-        ]);
+        $name = fake()->unique()->words(fake()->numberBetween(2, 4), true).' Trail';
 
         return [
             'name' => $name,

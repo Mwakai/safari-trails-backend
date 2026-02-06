@@ -4,6 +4,7 @@ use App\Http\Controllers\AmenityController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\PublicTrailController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TrailController;
 use App\Http\Controllers\UserController;
@@ -12,7 +13,10 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login']);
 
 // Public routes (no authentication required)
-Route::prefix('public')->group(function () {});
+Route::prefix('public')->group(function () {
+    Route::get('/trails', [PublicTrailController::class, 'index']);
+    Route::get('/trails/{slug}', [PublicTrailController::class, 'show']);
+});
 
 // Admin routes (authentication required for CMS)
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {

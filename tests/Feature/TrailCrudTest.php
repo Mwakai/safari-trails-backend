@@ -258,7 +258,7 @@ describe('create trail', function () {
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors([
-                'name', 'slug', 'description', 'difficulty',
+                'name', 'description', 'difficulty',
                 'distance_km', 'duration_hours', 'latitude',
                 'longitude', 'location_name', 'county',
             ]);
@@ -937,7 +937,7 @@ describe('counties endpoint', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
 
         $response = $this->actingAs($admin)
-            ->getJson('/api/admin/counties');
+            ->getJson('/api/admin/trails/counties');
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -953,7 +953,7 @@ describe('counties endpoint', function () {
     it('caches the counties response', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
 
-        $this->actingAs($admin)->getJson('/api/admin/counties');
+        $this->actingAs($admin)->getJson('/api/admin/trails/counties');
 
         expect(Cache::has('trails.counties'))->toBeTrue();
     });
@@ -964,7 +964,7 @@ describe('difficulties endpoint', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
 
         $response = $this->actingAs($admin)
-            ->getJson('/api/admin/difficulties');
+            ->getJson('/api/admin/trails/difficulties');
 
         $response->assertOk()
             ->assertJsonCount(4, 'data.difficulties');
@@ -977,7 +977,7 @@ describe('difficulties endpoint', function () {
     it('caches the difficulties response', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
 
-        $this->actingAs($admin)->getJson('/api/admin/difficulties');
+        $this->actingAs($admin)->getJson('/api/admin/trails/difficulties');
 
         expect(Cache::has('trails.difficulties'))->toBeTrue();
     });

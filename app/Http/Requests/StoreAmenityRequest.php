@@ -19,8 +19,6 @@ class StoreAmenityRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:amenities,slug'],
-            'icon' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['nullable', 'boolean'],
         ];
     }
@@ -36,8 +34,6 @@ class StoreAmenityRequest extends FormRequest
             'slug.required' => 'Slug is required',
             'slug.max' => 'Slug must not exceed 255 characters',
             'slug.unique' => 'This slug is already in use',
-            'icon.max' => 'Icon must not exceed 255 characters',
-            'description.max' => 'Description must not exceed 1000 characters',
             'is_active.boolean' => 'Active status must be true or false',
         ];
     }

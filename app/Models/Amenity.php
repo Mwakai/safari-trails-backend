@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Amenity extends Model
 {
@@ -14,8 +15,6 @@ class Amenity extends Model
     protected $fillable = [
         'name',
         'slug',
-        'icon',
-        'description',
         'is_active',
         'created_by',
     ];
@@ -36,6 +35,14 @@ class Amenity extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return BelongsToMany<Trail, $this>
+     */
+    public function trails(): BelongsToMany
+    {
+        return $this->belongsToMany(Trail::class);
     }
 
     public function isActive(): bool
