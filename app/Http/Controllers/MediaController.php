@@ -8,6 +8,7 @@ use App\Http\Requests\StoreMediaRequest;
 use App\Http\Requests\UpdateMediaRequest;
 use App\Http\Resources\MediaResource;
 use App\Models\Media;
+use App\Services\ActivityLogger;
 use App\Services\MediaService;
 use App\Traits\ApiResponses;
 use Illuminate\Http\JsonResponse;
@@ -66,6 +67,13 @@ class MediaController extends Controller
 
         $media->load('uploadedBy');
 
+        ActivityLogger::log(
+            event: 'uploaded',
+            subject: $media,
+            causer: $request->user(),
+            logName: 'media',
+        );
+
         return $this->success('Media uploaded successfully', [
             'media' => new MediaResource($media),
         ], 201);
@@ -96,6 +104,13 @@ class MediaController extends Controller
 
         $media->update($request->validated());
 
+        ActivityLogger::log(
+            event: 'updated',
+            subject: $media,
+            causer: $request->user(),
+            logName: 'media',
+        );
+
         return $this->ok('Media updated successfully', [
             'media' => new MediaResource($media),
         ]);
@@ -108,6 +123,13 @@ class MediaController extends Controller
         if ($response->denied()) {
             return $this->error($response->message(), 403);
         }
+
+        ActivityLogger::log(
+            event: 'deleted',
+            subject: $media,
+            causer: auth()->user(),
+            logName: 'media',
+        );
 
         $this->mediaService->deleteMedia($media);
 

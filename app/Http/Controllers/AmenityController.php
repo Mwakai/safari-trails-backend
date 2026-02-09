@@ -6,6 +6,7 @@ use App\Http\Requests\StoreAmenityRequest;
 use App\Http\Requests\UpdateAmenityRequest;
 use App\Http\Resources\AmenityResource;
 use App\Models\Amenity;
+use App\Services\ActivityLogger;
 use App\Traits\ApiResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -46,6 +47,13 @@ class AmenityController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
+        ActivityLogger::log(
+            event: 'created',
+            subject: $amenity,
+            causer: $request->user(),
+            logName: 'amenities',
+        );
+
         return $this->success('Amenity created successfully', [
             'amenity' => new AmenityResource($amenity),
         ], 201);
@@ -74,6 +82,13 @@ class AmenityController extends Controller
 
         $amenity->update($request->validated());
 
+        ActivityLogger::log(
+            event: 'updated',
+            subject: $amenity,
+            causer: $request->user(),
+            logName: 'amenities',
+        );
+
         return $this->ok('Amenity updated successfully', [
             'amenity' => new AmenityResource($amenity),
         ]);
@@ -86,6 +101,13 @@ class AmenityController extends Controller
         if ($response->denied()) {
             return $this->error($response->message(), 403);
         }
+
+        ActivityLogger::log(
+            event: 'deleted',
+            subject: $amenity,
+            causer: auth()->user(),
+            logName: 'amenities',
+        );
 
         $amenity->delete();
 

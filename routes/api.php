@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AmenityController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyController;
@@ -65,6 +66,12 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::patch('/trails/{trail}/status', [TrailController::class, 'updateStatus']);
     Route::delete('/trails/{trail}', [TrailController::class, 'destroy']);
     Route::post('/trails/{trail}/restore', [TrailController::class, 'restore']);
+
+    Route::middleware('permission:activity_logs.view')
+        ->get('/activity-logs', [ActivityLogController::class, 'index']);
+
+    Route::middleware('permission:activity_logs.view')
+        ->get('/activity-logs/{activityLog}', [ActivityLogController::class, 'show']);
 
     Route::get('/dashboard', function () {});
 });

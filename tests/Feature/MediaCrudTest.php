@@ -272,3 +272,53 @@ describe('delete media', function () {
         $response->assertUnauthorized();
     });
 });
+
+describe('activity logging', function () {
+    it('logs media upload', function () {
+        $contentManager = User::factory()->withRole($this->contentManagerRole)->create();
+        $file = UploadedFile::fake()->image('test-photo.jpg', 800, 600);
+
+        $this->actingAs($contentManager)
+            ->postJson('/api/admin/media', [
+                'file' => $file,
+            ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'log_name' => 'media',
+            'event' => 'uploaded',
+            'causer_id' => $contentManager->id,
+        ]);
+    });
+
+    it('logs media update', function () {
+        $contentManager = User::factory()->withRole($this->contentManagerRole)->create();
+        $media = Media::factory()->create();
+
+        $this->actingAs($contentManager)
+            ->putJson("/api/admin/media/{$media->id}", [
+                'alt_text' => 'Updated alt text',
+            ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'log_name' => 'media',
+            'event' => 'updated',
+            'subject_id' => $media->id,
+            'causer_id' => $contentManager->id,
+        ]);
+    });
+
+    it('logs media deletion', function () {
+        $admin = User::factory()->withRole($this->adminRole)->create();
+        $media = Media::factory()->create();
+
+        $this->actingAs($admin)
+            ->deleteJson("/api/admin/media/{$media->id}");
+
+        $this->assertDatabaseHas('activity_logs', [
+            'log_name' => 'media',
+            'event' => 'deleted',
+            'subject_id' => $media->id,
+            'causer_id' => $admin->id,
+        ]);
+    });
+});

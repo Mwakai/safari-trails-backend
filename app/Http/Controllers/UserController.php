@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Traits\ApiResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,6 +79,13 @@ class UserController extends Controller
 
         $user->load(['role', 'company']);
 
+        ActivityLogger::log(
+            event: 'created',
+            subject: $user,
+            causer: $request->user(),
+            logName: 'users',
+        );
+
         return $this->success('User created successfully', [
             'user' => new UserResource($user),
         ], 201);
@@ -128,8 +136,40 @@ class UserController extends Controller
             $data['password_changed_at'] = now();
         }
 
+        $oldRoleId = $user->role_id;
+        $oldStatus = $user->status;
+
         $user->update($data);
         $user->load(['role', 'company']);
+
+        ActivityLogger::log(
+            event: 'updated',
+            subject: $user,
+            causer: $request->user(),
+            logName: 'users',
+        );
+
+        if (isset($data['role_id']) && $data['role_id'] !== $oldRoleId) {
+            ActivityLogger::log(
+                event: 'role_changed',
+                subject: $user,
+                causer: $request->user(),
+                properties: ['old_role_id' => $oldRoleId, 'new_role_id' => $data['role_id']],
+                logName: 'users',
+            );
+        }
+
+        if (isset($data['status']) && $data['status'] !== $oldStatus->value) {
+            $statusEvent = $data['status'] === UserStatus::Active->value ? 'activated' : 'deactivated';
+
+            ActivityLogger::log(
+                event: $statusEvent,
+                subject: $user,
+                causer: $request->user(),
+                properties: ['old_status' => $oldStatus->value, 'new_status' => $data['status']],
+                logName: 'users',
+            );
+        }
 
         return $this->ok('User updated successfully', [
             'user' => new UserResource($user),
@@ -143,6 +183,13 @@ class UserController extends Controller
         if ($response->denied()) {
             return $this->error($response->message(), 403);
         }
+
+        ActivityLogger::log(
+            event: 'deleted',
+            subject: $user,
+            causer: $request->user(),
+            logName: 'users',
+        );
 
         $user->delete();
 

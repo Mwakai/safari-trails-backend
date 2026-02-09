@@ -59,6 +59,7 @@ class RoleFactory extends Factory
                 'trails.*',
                 'amenities.*',
                 'group_hikes.*',
+                'activity_logs.view',
             ],
             'is_system' => true,
         ]);

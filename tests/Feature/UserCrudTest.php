@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\UserStatus;
+use App\Models\ActivityLog;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -698,5 +699,121 @@ describe('permission checks', function () {
             ->deleteJson("/api/admin/users/{$targetUser->id}");
 
         $response->assertForbidden();
+    });
+});
+
+describe('activity logging', function () {
+    it('logs user creation', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+
+        $this->actingAs($superAdmin)
+            ->postJson('/api/admin/users', [
+                'first_name' => 'John',
+                'last_name' => 'Doe',
+                'email' => 'john.doe@example.com',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+                'role_id' => $this->adminRole->id,
+            ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'log_name' => 'users',
+            'event' => 'created',
+            'causer_id' => $superAdmin->id,
+        ]);
+    });
+
+    it('logs user update', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        $targetUser = User::factory()->withRole($this->adminRole)->create();
+
+        $this->actingAs($superAdmin)
+            ->patchJson("/api/admin/users/{$targetUser->id}", [
+                'first_name' => 'Updated',
+            ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'log_name' => 'users',
+            'event' => 'updated',
+            'subject_id' => $targetUser->id,
+            'causer_id' => $superAdmin->id,
+        ]);
+    });
+
+    it('logs role change with old and new role_id properties', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        $targetUser = User::factory()->withRole($this->adminRole)->create();
+
+        $this->actingAs($superAdmin)
+            ->patchJson("/api/admin/users/{$targetUser->id}", [
+                'role_id' => $this->contentManagerRole->id,
+            ]);
+
+        $log = ActivityLog::where('event', 'role_changed')
+            ->where('subject_id', $targetUser->id)
+            ->first();
+
+        expect($log)->not->toBeNull();
+        expect($log->properties)->toMatchArray([
+            'old_role_id' => $this->adminRole->id,
+            'new_role_id' => $this->contentManagerRole->id,
+        ]);
+    });
+
+    it('logs user deactivation with status properties', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        $targetUser = User::factory()->withRole($this->adminRole)->create([
+            'status' => UserStatus::Active,
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->patchJson("/api/admin/users/{$targetUser->id}", [
+                'status' => 'inactive',
+            ]);
+
+        $log = ActivityLog::where('event', 'deactivated')
+            ->where('subject_id', $targetUser->id)
+            ->first();
+
+        expect($log)->not->toBeNull();
+        expect($log->properties)->toMatchArray([
+            'old_status' => 'active',
+            'new_status' => 'inactive',
+        ]);
+    });
+
+    it('logs user activation with status properties', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        $targetUser = User::factory()->withRole($this->adminRole)->inactive()->create();
+
+        $this->actingAs($superAdmin)
+            ->patchJson("/api/admin/users/{$targetUser->id}", [
+                'status' => 'active',
+            ]);
+
+        $log = ActivityLog::where('event', 'activated')
+            ->where('subject_id', $targetUser->id)
+            ->first();
+
+        expect($log)->not->toBeNull();
+        expect($log->properties)->toMatchArray([
+            'old_status' => 'inactive',
+            'new_status' => 'active',
+        ]);
+    });
+
+    it('logs user deletion', function () {
+        $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
+        $targetUser = User::factory()->withRole($this->adminRole)->create();
+
+        $this->actingAs($superAdmin)
+            ->deleteJson("/api/admin/users/{$targetUser->id}");
+
+        $this->assertDatabaseHas('activity_logs', [
+            'log_name' => 'users',
+            'event' => 'deleted',
+            'subject_id' => $targetUser->id,
+            'causer_id' => $superAdmin->id,
+        ]);
     });
 });

@@ -341,3 +341,53 @@ describe('delete amenity', function () {
         $response->assertUnauthorized();
     });
 });
+
+describe('activity logging', function () {
+    it('logs amenity creation', function () {
+        $admin = User::factory()->withRole($this->adminRole)->create();
+
+        $this->actingAs($admin)
+            ->postJson('/api/admin/amenities', [
+                'name' => 'Waterfall',
+                'slug' => 'waterfall',
+            ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'log_name' => 'amenities',
+            'event' => 'created',
+            'causer_id' => $admin->id,
+        ]);
+    });
+
+    it('logs amenity update', function () {
+        $admin = User::factory()->withRole($this->adminRole)->create();
+        $amenity = Amenity::factory()->create();
+
+        $this->actingAs($admin)
+            ->patchJson("/api/admin/amenities/{$amenity->id}", [
+                'name' => 'Updated Name',
+            ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'log_name' => 'amenities',
+            'event' => 'updated',
+            'subject_id' => $amenity->id,
+            'causer_id' => $admin->id,
+        ]);
+    });
+
+    it('logs amenity deletion', function () {
+        $admin = User::factory()->withRole($this->adminRole)->create();
+        $amenity = Amenity::factory()->create();
+
+        $this->actingAs($admin)
+            ->deleteJson("/api/admin/amenities/{$amenity->id}");
+
+        $this->assertDatabaseHas('activity_logs', [
+            'log_name' => 'amenities',
+            'event' => 'deleted',
+            'subject_id' => $amenity->id,
+            'causer_id' => $admin->id,
+        ]);
+    });
+});
