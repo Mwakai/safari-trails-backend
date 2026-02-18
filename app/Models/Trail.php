@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DurationType;
 use App\Enums\TrailDifficulty;
 use App\Enums\TrailImageType;
 use App\Enums\TrailStatus;
@@ -29,13 +30,21 @@ class Trail extends Model
         'short_description',
         'difficulty',
         'distance_km',
-        'duration_hours',
+        'duration_type',
+        'duration_min',
+        'duration_max',
         'elevation_gain_m',
         'max_altitude_m',
+        'is_year_round',
+        'season_notes',
+        'requires_guide',
+        'requires_permit',
+        'permit_info',
+        'accommodation_types',
         'latitude',
         'longitude',
         'location_name',
-        'county',
+        'region_id',
         'route_a_name',
         'route_a_description',
         'route_a_latitude',
@@ -61,10 +70,16 @@ class Trail extends Model
         return [
             'difficulty' => TrailDifficulty::class,
             'status' => TrailStatus::class,
+            'duration_type' => DurationType::class,
             'distance_km' => 'decimal:2',
-            'duration_hours' => 'decimal:1',
+            'duration_min' => 'decimal:1',
+            'duration_max' => 'decimal:1',
             'elevation_gain_m' => 'integer',
             'max_altitude_m' => 'integer',
+            'is_year_round' => 'boolean',
+            'requires_guide' => 'boolean',
+            'requires_permit' => 'boolean',
+            'accommodation_types' => 'array',
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
             'route_a_latitude' => 'decimal:8',
@@ -155,11 +170,183 @@ class Trail extends Model
     }
 
     /**
-     * @return Attribute<string|null, never>
+     * @return BelongsTo<Region, $this>
      */
-    protected function countyName(): Attribute
+    public function region(): BelongsTo
     {
-        return Attribute::get(fn (): ?string => config("counties.all.{$this->county}"));
+        return $this->belongsTo(Region::class);
+    }
+
+    /**
+     * @return HasMany<TrailBestMonth, $this>
+     */
+    public function bestMonths(): HasMany
+    {
+        return $this->hasMany(TrailBestMonth::class)->orderBy('month');
+    }
+
+    /**
+     * @return HasMany<TrailItineraryDay, $this>
+     */
+    public function itineraryDays(): HasMany
+    {
+        return $this->hasMany(TrailItineraryDay::class)->orderBy('day_number');
+    }
+
+    /**
+     * Whether this is a multi-day trail (derived from duration_type).
+     */
+    protected function isMultiDay(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->duration_type === DurationType::Days,
+        );
+    }
+
+    /**
+     * Human-readable duration display (e.g., "2-3 hours", "5 days").
+     */
+    protected function durationDisplay(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->duration_min === null) {
+                    return null;
+                }
+
+                $type = $this->duration_type?->value ?? 'hours';
+                $min = rtrim(rtrim(number_format((float) $this->duration_min, 1), '0'), '.');
+                $max = $this->duration_max ? rtrim(rtrim(number_format((float) $this->duration_max, 1), '0'), '.') : null;
+
+                if ($max && (float) $this->duration_max !== (float) $this->duration_min) {
+                    return "{$min}-{$max} {$type}";
+                }
+
+                return "{$min} {$type}";
+            },
+        );
+    }
+
+    /**
+     * Formatted display of best hiking months (e.g., "Jan-Mar, Jul-Oct").
+     */
+    protected function bestMonthsDisplay(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->is_year_round) {
+                    return 'Year-round';
+                }
+
+                $months = $this->getBestMonthsArray();
+
+                if (empty($months)) {
+                    return 'Year-round';
+                }
+
+                return $this->formatMonthRanges($months);
+            },
+        );
+    }
+
+    /**
+     * Rating for the current month: 'best', 'okay', or 'avoid'.
+     */
+    protected function currentMonthRating(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->is_year_round) {
+                    return 'best';
+                }
+
+                $currentMonth = (int) now()->format('n');
+
+                if ($this->isGoodMonth($currentMonth)) {
+                    return 'best';
+                }
+
+                // Check if adjacent months are good (makes current "okay")
+                $prevMonth = $currentMonth === 1 ? 12 : $currentMonth - 1;
+                $nextMonth = $currentMonth === 12 ? 1 : $currentMonth + 1;
+
+                if ($this->isGoodMonth($prevMonth) || $this->isGoodMonth($nextMonth)) {
+                    return 'okay';
+                }
+
+                return 'avoid';
+            },
+        );
+    }
+
+    /**
+     * Contextual recommendation message based on current month.
+     */
+    protected function seasonRecommendation(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->is_year_round) {
+                    return 'Great for hiking year-round';
+                }
+
+                $rating = $this->current_month_rating;
+                $display = $this->best_months_display;
+
+                return match ($rating) {
+                    'best' => 'Now is a great time to hike this trail',
+                    'okay' => "Conditions may vary. Best months: {$display}",
+                    default => "Not recommended now. Best months: {$display}",
+                };
+            },
+        );
+    }
+
+    /**
+     * @return array<int>
+     */
+    public function getBestMonthsArray(): array
+    {
+        if ($this->relationLoaded('bestMonths')) {
+            return $this->bestMonths->pluck('month')->sort()->values()->all();
+        }
+
+        return $this->bestMonths()->pluck('month')->sort()->values()->all();
+    }
+
+    /**
+     * @param  array<int>  $months
+     */
+    public function setBestMonths(array $months): void
+    {
+        $this->bestMonths()->delete();
+
+        $months = array_unique(array_filter($months, fn ($m) => $m >= 1 && $m <= 12));
+        sort($months);
+
+        foreach ($months as $month) {
+            TrailBestMonth::create([
+                'trail_id' => $this->id,
+                'month' => $month,
+                'created_at' => now(),
+            ]);
+        }
+
+        $this->unsetRelation('bestMonths');
+    }
+
+    public function isGoodMonth(int $month): bool
+    {
+        if ($this->is_year_round) {
+            return true;
+        }
+
+        return in_array($month, $this->getBestMonthsArray());
+    }
+
+    public function isGoodNow(): bool
+    {
+        return $this->isGoodMonth((int) now()->format('n'));
     }
 
     public function isPublished(): bool
@@ -175,5 +362,42 @@ class Trail extends Model
     public function isArchived(): bool
     {
         return $this->status === TrailStatus::Archived;
+    }
+
+    /**
+     * Format month numbers into human-readable ranges.
+     *
+     * @param  array<int>  $months
+     */
+    private function formatMonthRanges(array $months): string
+    {
+        $names = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+            5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug',
+            9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec',
+        ];
+
+        sort($months);
+        $ranges = [];
+        $start = $months[0];
+        $prev = $months[0];
+
+        for ($i = 1; $i < count($months); $i++) {
+            if ($months[$i] === $prev + 1) {
+                $prev = $months[$i];
+            } else {
+                $ranges[] = $start === $prev
+                    ? $names[$start]
+                    : $names[$start].'-'.$names[$prev];
+                $start = $months[$i];
+                $prev = $months[$i];
+            }
+        }
+
+        $ranges[] = $start === $prev
+            ? $names[$start]
+            : $names[$start].'-'.$names[$prev];
+
+        return implode(', ', $ranges);
     }
 }

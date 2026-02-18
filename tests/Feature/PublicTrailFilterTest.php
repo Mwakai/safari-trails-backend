@@ -2,6 +2,7 @@
 
 use App\Enums\TrailDifficulty;
 use App\Models\Amenity;
+use App\Models\Region;
 use App\Models\Trail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -44,13 +45,18 @@ describe('public trail listing', function () {
                             'short_description',
                             'difficulty',
                             'distance_km',
-                            'duration_hours',
+                            'duration_type',
+                            'duration_min',
+                            'duration_max',
+                            'is_multi_day',
+                            'duration_display',
                             'elevation_gain_m',
                             'latitude',
                             'longitude',
                             'location_name',
-                            'county',
-                            'county_name',
+                            'region_id',
+                            'region_name',
+                            'region_slug',
                             'published_at',
                         ],
                     ],
@@ -113,11 +119,13 @@ describe('public filters', function () {
             ->assertJsonCount(1, 'data.trails');
     });
 
-    it('filters by county', function () {
-        Trail::factory()->published()->withCounty('nyeri')->create();
-        Trail::factory()->published()->withCounty('nairobi')->create();
+    it('filters by region', function () {
+        $central = Region::factory()->withName('Central')->create();
+        $nairobi = Region::factory()->withName('Nairobi')->create();
+        Trail::factory()->published()->withRegion($central)->create();
+        Trail::factory()->published()->withRegion($nairobi)->create();
 
-        $response = $this->getJson('/api/public/trails?county=nyeri');
+        $response = $this->getJson('/api/public/trails?region=central');
 
         $response->assertOk()
             ->assertJsonCount(1, 'data.trails');
@@ -148,8 +156,8 @@ describe('public filters', function () {
     });
 
     it('filters by duration range', function () {
-        Trail::factory()->published()->create(['duration_hours' => 2.0]);
-        Trail::factory()->published()->create(['duration_hours' => 8.0]);
+        Trail::factory()->published()->create(['duration_min' => 2.0]);
+        Trail::factory()->published()->create(['duration_min' => 8.0]);
 
         $response = $this->getJson('/api/public/trails?min_duration=5');
 

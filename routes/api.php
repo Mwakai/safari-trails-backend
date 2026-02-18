@@ -15,8 +15,11 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // Public routes (no authentication required)
 Route::prefix('public')->group(function () {
+    Route::get('/trails/map', [PublicTrailController::class, 'mapMarkers']);
+    Route::get('/trails/filters', [PublicTrailController::class, 'filters']);
     Route::get('/trails', [PublicTrailController::class, 'index']);
     Route::get('/trails/{slug}', [PublicTrailController::class, 'show']);
+    Route::get('/trails/{slug}/related', [PublicTrailController::class, 'related']);
 });
 
 // Admin routes (authentication required for CMS)
@@ -59,7 +62,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::get('/trails', [TrailController::class, 'index']);
     Route::post('/trails', [TrailController::class, 'store']);
-    Route::get('/trails/counties', [TrailController::class, 'counties']);
+    Route::get('/trails/regions', [TrailController::class, 'regions']);
     Route::get('/trails/difficulties', [TrailController::class, 'difficulties']);
     Route::get('/trails/{trail}', [TrailController::class, 'show']);
     Route::match(['put', 'patch'], '/trails/{trail}', [TrailController::class, 'update']);

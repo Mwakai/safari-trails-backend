@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Enums\TrailStatus;
+use App\Models\Amenity;
 use App\Models\Trail;
 use App\Models\TrailGpx;
 use App\Models\TrailImage;
+use App\Models\TrailItineraryDay;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -29,13 +31,21 @@ class TrailService
                 'short_description' => $data['short_description'] ?? null,
                 'difficulty' => $data['difficulty'],
                 'distance_km' => $data['distance_km'],
-                'duration_hours' => $data['duration_hours'],
+                'duration_type' => $data['duration_type'] ?? 'hours',
+                'duration_min' => $data['duration_min'],
+                'duration_max' => $data['duration_max'] ?? null,
                 'elevation_gain_m' => $data['elevation_gain_m'] ?? null,
                 'max_altitude_m' => $data['max_altitude_m'] ?? null,
+                'is_year_round' => $data['is_year_round'] ?? true,
+                'season_notes' => $data['season_notes'] ?? null,
+                'requires_guide' => $data['requires_guide'] ?? false,
+                'requires_permit' => $data['requires_permit'] ?? false,
+                'permit_info' => $data['permit_info'] ?? null,
+                'accommodation_types' => $data['accommodation_types'] ?? null,
                 'latitude' => $data['latitude'],
                 'longitude' => $data['longitude'],
                 'location_name' => $data['location_name'],
-                'county' => $data['county'],
+                'region_id' => $data['region_id'],
                 'route_a_name' => $data['route_a_name'] ?? null,
                 'route_a_description' => $data['route_a_description'] ?? null,
                 'route_a_latitude' => $data['route_a_latitude'] ?? null,
@@ -58,6 +68,14 @@ class TrailService
             $this->syncImages($trail, $data['images'] ?? []);
             $this->syncGpxFiles($trail, $data['gpx_files'] ?? []);
 
+            if (array_key_exists('best_months', $data)) {
+                $trail->setBestMonths($data['best_months'] ?? []);
+            }
+
+            $this->syncItineraryDays($trail, $data['itinerary_days'] ?? []);
+
+            $this->syncCampingAmenity($trail, $data['accommodation_types'] ?? null, $data['amenity_ids'] ?? []);
+
             return $trail;
         });
     }
@@ -70,7 +88,7 @@ class TrailService
     public function updateTrail(Trail $trail, array $data, int $userId): Trail
     {
         return DB::transaction(function () use ($trail, $data, $userId) {
-            $trailFields = collect($data)->except(['amenity_ids', 'images', 'gpx_files'])->toArray();
+            $trailFields = collect($data)->except(['amenity_ids', 'images', 'gpx_files', 'best_months', 'itinerary_days'])->toArray();
             $trailFields['updated_by'] = $userId;
 
             if (isset($trailFields['status'])
@@ -92,6 +110,22 @@ class TrailService
 
             if (array_key_exists('gpx_files', $data)) {
                 $this->syncGpxFiles($trail, $data['gpx_files'] ?? []);
+            }
+
+            if (array_key_exists('best_months', $data)) {
+                $trail->setBestMonths($data['best_months'] ?? []);
+            }
+
+            if (array_key_exists('itinerary_days', $data)) {
+                $this->syncItineraryDays($trail, $data['itinerary_days'] ?? []);
+            }
+
+            if (array_key_exists('accommodation_types', $data) || array_key_exists('amenity_ids', $data)) {
+                $this->syncCampingAmenity(
+                    $trail,
+                    $trail->accommodation_types,
+                    $data['amenity_ids'] ?? [],
+                );
             }
 
             return $trail;
@@ -145,6 +179,55 @@ class TrailService
                 'name' => $gpxData['name'],
                 'sort_order' => $gpxData['sort_order'] ?? $index,
                 'created_at' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * Auto-sync Camping amenity based on accommodation_types.
+     *
+     * @param  array<string>|null  $accommodationTypes
+     * @param  array<int>  $explicitAmenityIds
+     */
+    private function syncCampingAmenity(Trail $trail, ?array $accommodationTypes, array $explicitAmenityIds = []): void
+    {
+        $campingAmenity = Amenity::where('slug', 'camping')->first();
+
+        if (! $campingAmenity) {
+            return;
+        }
+
+        $hasCampingAccommodation = is_array($accommodationTypes) && in_array('camping', $accommodationTypes);
+        $hasExplicitCamping = in_array($campingAmenity->id, $explicitAmenityIds);
+
+        if ($hasCampingAccommodation && ! $hasExplicitCamping) {
+            $trail->amenities()->syncWithoutDetaching([$campingAmenity->id]);
+        } elseif (! $hasCampingAccommodation && ! $hasExplicitCamping) {
+            $trail->amenities()->detach($campingAmenity->id);
+        }
+    }
+
+    /**
+     * Sync itinerary days using delete-and-reinsert pattern.
+     *
+     * @param  array<int, array{day_number: int, title: string, description?: string|null, distance_km?: float|null, elevation_gain_m?: int|null, start_point?: string|null, end_point?: string|null, accommodation?: string|null, sort_order?: int}>  $days
+     */
+    private function syncItineraryDays(Trail $trail, array $days): void
+    {
+        $trail->itineraryDays()->delete();
+
+        foreach ($days as $index => $dayData) {
+            TrailItineraryDay::create([
+                'trail_id' => $trail->id,
+                'day_number' => $dayData['day_number'],
+                'title' => $dayData['title'],
+                'description' => $dayData['description'] ?? null,
+                'distance_km' => $dayData['distance_km'] ?? null,
+                'elevation_gain_m' => $dayData['elevation_gain_m'] ?? null,
+                'start_point' => $dayData['start_point'] ?? null,
+                'end_point' => $dayData['end_point'] ?? null,
+                'accommodation' => $dayData['accommodation'] ?? null,
+                'sort_order' => $dayData['sort_order'] ?? $index,
             ]);
         }
     }

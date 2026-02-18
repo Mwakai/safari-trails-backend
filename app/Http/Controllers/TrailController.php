@@ -33,7 +33,7 @@ class TrailController extends Controller
         }
 
         $query = Trail::query()
-            ->with('featuredImage')
+            ->with(['featuredImage', 'region'])
             ->filter($filters);
 
         $filters->applyTrailSorting($query);
@@ -73,9 +73,12 @@ class TrailController extends Controller
 
         $trail->load([
             'featuredImage',
+            'region',
             'amenities',
             'images.media',
             'gpxFiles.media',
+            'bestMonths',
+            'itineraryDays',
             'creator',
         ]);
 
@@ -94,9 +97,12 @@ class TrailController extends Controller
 
         $trail->load([
             'featuredImage',
+            'region',
             'amenities',
             'images.media',
             'gpxFiles.media',
+            'bestMonths',
+            'itineraryDays',
             'creator',
             'updater',
         ]);
@@ -129,9 +135,12 @@ class TrailController extends Controller
 
         $trail->load([
             'featuredImage',
+            'region',
             'amenities',
             'images.media',
             'gpxFiles.media',
+            'bestMonths',
+            'itineraryDays',
             'creator',
             'updater',
         ]);
@@ -173,7 +182,7 @@ class TrailController extends Controller
         );
 
         return $this->ok('Trail status updated successfully', [
-            'trail' => new TrailResource($trail->load('featuredImage')),
+            'trail' => new TrailResource($trail->load(['featuredImage', 'region'])),
         ]);
     }
 
@@ -217,16 +226,20 @@ class TrailController extends Controller
         );
 
         return $this->ok('Trail restored successfully', [
-            'trail' => new TrailResource($trail->load('featuredImage')),
+            'trail' => new TrailResource($trail->load(['featuredImage', 'region'])),
         ]);
     }
 
-    public function counties(): JsonResponse
+    public function regions(): JsonResponse
     {
-        $counties = Cache::rememberForever('trails.counties', fn () => config('counties'));
+        $regions = Cache::rememberForever('trails.regions', fn () => \App\Models\Region::query()
+            ->active()
+            ->ordered()
+            ->get(['id', 'name', 'slug', 'description', 'latitude', 'longitude', 'sort_order', 'is_active'])
+        );
 
-        return $this->ok('Counties retrieved', [
-            'counties' => $counties,
+        return $this->ok('Regions retrieved', [
+            'regions' => $regions,
         ]);
     }
 

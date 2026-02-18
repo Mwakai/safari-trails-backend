@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /** @mixin \App\Models\Trail */
-class TrailListResource extends JsonResource
+class MapMarkerResource extends JsonResource
 {
     /**
      * @return array<string, mixed>
@@ -15,26 +15,22 @@ class TrailListResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
             'slug' => $this->slug,
-            'short_description' => $this->short_description,
+            'name' => $this->name,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
             'difficulty' => $this->difficulty->value,
+            'difficulty_label' => $this->difficulty->name,
             'distance_km' => $this->distance_km,
             'duration_type' => $this->duration_type?->value,
             'duration_min' => $this->duration_min,
             'duration_max' => $this->duration_max,
             'is_multi_day' => $this->is_multi_day,
             'duration_display' => $this->duration_display,
-            'location_name' => $this->location_name,
-            'region_id' => $this->region_id,
-            'region_name' => $this->whenLoaded('region', fn () => $this->region->name),
+            'elevation_gain_m' => $this->elevation_gain_m,
+            'thumbnail_url' => $this->whenLoaded('featuredImage', fn () => $this->featuredImage?->getVariantUrl('thumbnail')),
             'region_slug' => $this->whenLoaded('region', fn () => $this->region->slug),
-            'featured_image' => new MediaResource($this->whenLoaded('featuredImage')),
-            'requires_guide' => $this->requires_guide,
-            'requires_permit' => $this->requires_permit,
-            'status' => $this->status->value,
-            'published_at' => $this->published_at,
-            'created_at' => $this->created_at,
+            'region_name' => $this->whenLoaded('region', fn () => $this->region->name),
         ];
     }
 }

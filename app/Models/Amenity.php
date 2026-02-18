@@ -42,7 +42,7 @@ class Amenity extends Model
      */
     public function trails(): BelongsToMany
     {
-        return $this->belongsToMany(Trail::class);
+        return $this->belongsToMany(Trail::class, 'trail_amenity');
     }
 
     public function isActive(): bool

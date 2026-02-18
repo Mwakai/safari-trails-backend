@@ -4,6 +4,7 @@ use App\Enums\TrailDifficulty;
 use App\Models\ActivityLog;
 use App\Models\Amenity;
 use App\Models\Media;
+use App\Models\Region;
 use App\Models\Role;
 use App\Models\Trail;
 use App\Models\User;
@@ -17,10 +18,17 @@ beforeEach(function () {
     $this->adminRole = Role::factory()->admin()->create();
     $this->contentManagerRole = Role::factory()->contentManager()->create();
     $this->groupHikeOrganizerRole = Role::factory()->groupHikeOrganizer()->create();
+    $this->region = Region::factory()->withName('Nyeri')->create();
 });
 
 function validTrailPayload(array $overrides = []): array
 {
+    static $region = null;
+
+    if ($region === null) {
+        $region = Region::where('slug', 'nyeri')->first() ?? Region::factory()->withName('Nyeri')->create();
+    }
+
     return array_merge([
         'name' => 'Chania Falls Trail',
         'slug' => 'chania-falls-trail',
@@ -28,13 +36,14 @@ function validTrailPayload(array $overrides = []): array
         'short_description' => 'A scenic trail to Chania Falls',
         'difficulty' => 'moderate',
         'distance_km' => 12.50,
-        'duration_hours' => 5.5,
+        'duration_type' => 'hours',
+        'duration_min' => 5.5,
         'elevation_gain_m' => 450,
         'max_altitude_m' => 2800,
         'latitude' => -0.38340000,
         'longitude' => 36.96120000,
         'location_name' => 'Aberdare National Park',
-        'county' => 'nyeri',
+        'region_id' => $region->id,
     ], $overrides);
 }
 
@@ -92,14 +101,16 @@ describe('list trails', function () {
             ->assertJsonCount(2, 'data.trails');
     });
 
-    it('filters trails by county', function () {
+    it('filters trails by region', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
-        Trail::factory()->withCounty('nyeri')->create();
-        Trail::factory()->withCounty('nairobi')->create();
-        Trail::factory()->withCounty('nyeri')->create();
+        $central = Region::factory()->withName('Central')->create();
+        $nairobi = Region::factory()->withName('Nairobi')->create();
+        Trail::factory()->withRegion($central)->create();
+        Trail::factory()->withRegion($nairobi)->create();
+        Trail::factory()->withRegion($central)->create();
 
         $response = $this->actingAs($admin)
-            ->getJson('/api/admin/trails?county=nyeri');
+            ->getJson('/api/admin/trails?region=central');
 
         $response->assertOk()
             ->assertJsonCount(2, 'data.trails');
@@ -146,7 +157,7 @@ describe('create trail', function () {
             ->assertJsonPath('data.trail.slug', 'chania-falls-trail')
             ->assertJsonPath('data.trail.difficulty', 'moderate')
             ->assertJsonPath('data.trail.status', 'draft')
-            ->assertJsonPath('data.trail.county', 'nyeri');
+            ->assertJsonPath('data.trail.region_id', $this->region->id);
 
         $this->assertDatabaseHas('trails', [
             'name' => 'Chania Falls Trail',
@@ -259,8 +270,8 @@ describe('create trail', function () {
         $response->assertUnprocessable()
             ->assertJsonValidationErrors([
                 'name', 'description', 'difficulty',
-                'distance_km', 'duration_hours', 'latitude',
-                'longitude', 'location_name', 'county',
+                'distance_km', 'duration_type', 'duration_min', 'latitude',
+                'longitude', 'location_name', 'region_id',
             ]);
     });
 
@@ -275,16 +286,16 @@ describe('create trail', function () {
             ->assertJsonValidationErrors(['slug']);
     });
 
-    it('validates county is a valid Kenyan county', function () {
+    it('validates region_id exists', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
 
         $response = $this->actingAs($admin)
             ->postJson('/api/admin/trails', validTrailPayload([
-                'county' => 'InvalidCounty',
+                'region_id' => 9999,
             ]));
 
         $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['county']);
+            ->assertJsonValidationErrors(['region_id']);
     });
 
     it('validates difficulty is a valid enum value', function () {
@@ -389,6 +400,7 @@ describe('update trail', function () {
     it('allows users with trails.update permission to update a trail', function () {
         $contentManager = User::factory()->withRole($this->contentManagerRole)->create();
         $trail = Trail::factory()->create();
+        $nairobi = Region::factory()->withName('Nairobi')->create();
 
         $response = $this->actingAs($contentManager)
             ->putJson("/api/admin/trails/{$trail->id}", [
@@ -397,11 +409,12 @@ describe('update trail', function () {
                 'description' => 'Updated description',
                 'difficulty' => 'expert',
                 'distance_km' => 20.00,
-                'duration_hours' => 8.0,
+                'duration_type' => 'hours',
+                'duration_min' => 8.0,
                 'latitude' => -1.28640000,
                 'longitude' => 36.81720000,
                 'location_name' => 'Updated Location',
-                'county' => 'nairobi',
+                'region_id' => $nairobi->id,
             ]);
 
         $response->assertOk()
@@ -553,11 +566,12 @@ describe('update trail', function () {
                 'description' => 'Test',
                 'difficulty' => 'easy',
                 'distance_km' => 5,
-                'duration_hours' => 2,
+                'duration_type' => 'hours',
+                'duration_min' => 2,
                 'latitude' => -1.28,
                 'longitude' => 36.81,
                 'location_name' => 'Test',
-                'county' => 'nairobi',
+                'region_id' => $this->region->id,
             ]);
 
         $response->assertUnprocessable()
@@ -932,30 +946,35 @@ describe('cache invalidation', function () {
     });
 });
 
-describe('counties endpoint', function () {
-    it('returns counties grouped by popular and other', function () {
+describe('regions endpoint', function () {
+    it('returns active regions ordered by sort_order', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
+        Region::factory()->withName('Coast')->create(['sort_order' => 2]);
+        Region::factory()->withName('Central')->create(['sort_order' => 1]);
+        Region::factory()->inactive()->withName('Inactive Region')->create(['sort_order' => 3]);
 
         $response = $this->actingAs($admin)
-            ->getJson('/api/admin/trails/counties');
+            ->getJson('/api/admin/trails/regions');
 
         $response->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    'counties' => ['popular', 'other', 'all'],
+                    'regions',
                 ],
             ]);
 
-        expect($response->json('data.counties.popular.nyeri'))->toBe('Nyeri');
-        expect($response->json('data.counties.other.mombasa'))->toBe('Mombasa');
+        $names = collect($response->json('data.regions'))->pluck('name');
+        expect($names)->toContain('Central')
+            ->toContain('Coast')
+            ->not->toContain('Inactive Region');
     });
 
-    it('caches the counties response', function () {
+    it('caches the regions response', function () {
         $admin = User::factory()->withRole($this->adminRole)->create();
 
-        $this->actingAs($admin)->getJson('/api/admin/trails/counties');
+        $this->actingAs($admin)->getJson('/api/admin/trails/regions');
 
-        expect(Cache::has('trails.counties'))->toBeTrue();
+        expect(Cache::has('trails.regions'))->toBeTrue();
     });
 });
 

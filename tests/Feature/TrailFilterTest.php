@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Amenity;
+use App\Models\Region;
 use App\Models\Role;
 use App\Models\Trail;
 use App\Models\User;
@@ -118,16 +119,16 @@ describe('sorting', function () {
         expect((float) $trails[0]['distance_km'])->toBeLessThan((float) $trails[1]['distance_km']);
     });
 
-    it('sorts by duration_hours', function () {
-        createTrail(['duration_hours' => 8.0]);
-        createTrail(['duration_hours' => 2.0]);
+    it('sorts by duration_min', function () {
+        createTrail(['duration_min' => 8.0]);
+        createTrail(['duration_min' => 2.0]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/trails?sort=duration_hours&order=asc');
+            ->getJson('/api/admin/trails?sort=duration_min&order=asc');
 
         $response->assertOk();
         $trails = $response->json('data.trails');
-        expect((float) $trails[0]['duration_hours'])->toBeLessThan((float) $trails[1]['duration_hours']);
+        expect((float) $trails[0]['duration_min'])->toBeLessThan((float) $trails[1]['duration_min']);
     });
 });
 
@@ -154,12 +155,14 @@ describe('search', function () {
             ->assertJsonCount(1, 'data.trails');
     });
 
-    it('searches by county', function () {
-        createTrail(['county' => 'nyeri']);
-        createTrail(['county' => 'nairobi']);
+    it('searches by region name', function () {
+        $central = Region::factory()->withName('Central')->create();
+        $coast = Region::factory()->withName('Coast')->create();
+        createTrail(['region_id' => $central->id]);
+        createTrail(['region_id' => $coast->id]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/trails?search=nyeri');
+            ->getJson('/api/admin/trails?search=Central');
 
         $response->assertOk()
             ->assertJsonCount(1, 'data.trails');
@@ -230,26 +233,31 @@ describe('difficulty filter', function () {
     });
 });
 
-describe('county filter', function () {
-    it('filters by single county', function () {
-        createTrail(['county' => 'nyeri']);
-        createTrail(['county' => 'nairobi']);
-        createTrail(['county' => 'nyeri']);
+describe('region filter', function () {
+    it('filters by single region slug', function () {
+        $central = Region::factory()->withName('Central')->create();
+        $nairobi = Region::factory()->withName('Nairobi')->create();
+        createTrail(['region_id' => $central->id]);
+        createTrail(['region_id' => $nairobi->id]);
+        createTrail(['region_id' => $central->id]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/trails?county=nyeri');
+            ->getJson('/api/admin/trails?region=central');
 
         $response->assertOk()
             ->assertJsonCount(2, 'data.trails');
     });
 
-    it('filters by comma-separated counties', function () {
-        createTrail(['county' => 'nyeri']);
-        createTrail(['county' => 'nairobi']);
-        createTrail(['county' => 'kiambu']);
+    it('filters by comma-separated region slugs', function () {
+        $central = Region::factory()->withName('Central')->create();
+        $nairobi = Region::factory()->withName('Nairobi')->create();
+        $coast = Region::factory()->withName('Coast')->create();
+        createTrail(['region_id' => $central->id]);
+        createTrail(['region_id' => $nairobi->id]);
+        createTrail(['region_id' => $coast->id]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/trails?county=nyeri,nairobi');
+            ->getJson('/api/admin/trails?region=central,nairobi');
 
         $response->assertOk()
             ->assertJsonCount(2, 'data.trails');
@@ -431,8 +439,8 @@ describe('distance range filter', function () {
 
 describe('duration range filter', function () {
     it('filters by min_duration', function () {
-        createTrail(['duration_hours' => 2.0]);
-        createTrail(['duration_hours' => 6.0]);
+        createTrail(['duration_min' => 2.0]);
+        createTrail(['duration_min' => 6.0]);
 
         $response = $this->actingAs($this->admin)
             ->getJson('/api/admin/trails?min_duration=4');
@@ -442,8 +450,8 @@ describe('duration range filter', function () {
     });
 
     it('filters by max_duration', function () {
-        createTrail(['duration_hours' => 2.0]);
-        createTrail(['duration_hours' => 6.0]);
+        createTrail(['duration_min' => 2.0]);
+        createTrail(['duration_min' => 6.0]);
 
         $response = $this->actingAs($this->admin)
             ->getJson('/api/admin/trails?max_duration=4');
@@ -451,17 +459,116 @@ describe('duration range filter', function () {
         $response->assertOk()
             ->assertJsonCount(1, 'data.trails');
     });
+
+    it('filters multi-day trails with cross-type conversion', function () {
+        createTrail(['duration_type' => 'hours', 'duration_min' => 6.0]);
+        createTrail(['duration_type' => 'days', 'duration_min' => 3.0]); // 3 days = 24 hours equivalent
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/admin/trails?min_duration=10');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.trails'); // only the 3-day trail (24h equivalent)
+    });
+});
+
+describe('new filters', function () {
+    it('filters by duration_type', function () {
+        createTrail(['duration_type' => 'hours', 'duration_min' => 3.0]);
+        createTrail(['duration_type' => 'days', 'duration_min' => 2.0]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/admin/trails?duration_type=days');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.trails');
+    });
+
+    it('filters by is_multi_day true', function () {
+        createTrail(['duration_type' => 'hours', 'duration_min' => 3.0]);
+        createTrail(['duration_type' => 'days', 'duration_min' => 2.0]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/admin/trails?is_multi_day=1');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.trails');
+    });
+
+    it('filters by is_multi_day false', function () {
+        createTrail(['duration_type' => 'hours', 'duration_min' => 3.0]);
+        createTrail(['duration_type' => 'days', 'duration_min' => 2.0]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/admin/trails?is_multi_day=0');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.trails');
+    });
+
+    it('filters by requires_guide', function () {
+        createTrail(['requires_guide' => true]);
+        createTrail(['requires_guide' => false]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/admin/trails?requires_guide=1');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.trails');
+    });
+
+    it('filters by requires_permit', function () {
+        createTrail(['requires_permit' => true, 'permit_info' => 'KWS permit']);
+        createTrail(['requires_permit' => false]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/admin/trails?requires_permit=1');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.trails');
+    });
+
+    it('filters by accommodation type', function () {
+        createTrail(['accommodation_types' => ['camping', 'huts']]);
+        createTrail(['accommodation_types' => ['hotels']]);
+        createTrail(['accommodation_types' => null]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/admin/trails?accommodation=camping');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.trails');
+    });
+
+    it('filters by best_month including year-round trails', function () {
+        $seasonal = createTrail(['is_year_round' => false]);
+        $seasonal->setBestMonths([1, 2, 3, 7, 8]);
+
+        $yearRound = createTrail(['is_year_round' => true]);
+
+        $otherSeasonal = createTrail(['is_year_round' => false]);
+        $otherSeasonal->setBestMonths([6, 7, 8]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/admin/trails?best_month=1');
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data.trails'); // seasonal (has Jan) + year-round
+    });
 });
 
 describe('combined filters', function () {
     it('applies multiple filters simultaneously', function () {
-        createTrail(['status' => 'published', 'published_at' => now(), 'difficulty' => 'easy', 'county' => 'nyeri']);
-        createTrail(['status' => 'published', 'published_at' => now(), 'difficulty' => 'easy', 'county' => 'nairobi']);
-        createTrail(['status' => 'published', 'published_at' => now(), 'difficulty' => 'expert', 'county' => 'nyeri']);
-        createTrail(['difficulty' => 'easy', 'county' => 'nyeri']); // draft
+        $central = Region::factory()->withName('Central')->create();
+        $nairobi = Region::factory()->withName('Nairobi')->create();
+
+        createTrail(['status' => 'published', 'published_at' => now(), 'difficulty' => 'easy', 'region_id' => $central->id]);
+        createTrail(['status' => 'published', 'published_at' => now(), 'difficulty' => 'easy', 'region_id' => $nairobi->id]);
+        createTrail(['status' => 'published', 'published_at' => now(), 'difficulty' => 'expert', 'region_id' => $central->id]);
+        createTrail(['difficulty' => 'easy', 'region_id' => $central->id]); // draft
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/trails?status=published&difficulty=easy&county=nyeri');
+            ->getJson('/api/admin/trails?status=published&difficulty=easy&region=central');
 
         $response->assertOk()
             ->assertJsonCount(1, 'data.trails');

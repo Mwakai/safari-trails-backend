@@ -22,6 +22,7 @@ class TrailObserver
     {
         Cache::forget("trail.{$trail->id}");
         Cache::forget("trail.slug.{$trail->slug}");
+        Cache::forget("trail.related.{$trail->id}");
         $this->clearTrailCaches();
     }
 
@@ -32,6 +33,7 @@ class TrailObserver
     {
         Cache::forget("trail.{$trail->id}");
         Cache::forget("trail.slug.{$trail->slug}");
+        Cache::forget("trail.related.{$trail->id}");
         $this->clearTrailCaches();
     }
 
@@ -46,7 +48,9 @@ class TrailObserver
     private function clearTrailCaches(): void
     {
         Cache::forget('trails.public');
-        Cache::forget('trails.counties');
+        Cache::forget('trails.regions');
         Cache::forget('trails.difficulties');
+        Cache::forget('trails.filter_options');
+        Cache::forget('trails.map.all');
     }
 }

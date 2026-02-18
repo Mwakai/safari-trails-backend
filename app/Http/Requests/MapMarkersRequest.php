@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ListTrailsRequest extends FormRequest
+class MapMarkersRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -18,13 +18,8 @@ class ListTrailsRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'string'],
             'difficulty' => ['nullable', 'string'],
             'region' => ['nullable', 'string', 'max:255'],
-            'created_by' => ['nullable', 'integer', 'exists:users,id'],
-            'created_after' => ['nullable', 'date'],
-            'created_before' => ['nullable', 'date', 'after_or_equal:created_after'],
-            'trashed' => ['nullable', 'string', 'in:with,only'],
             'amenities' => ['nullable', 'string'],
             'amenities_any' => ['nullable', 'string'],
             'min_distance' => ['nullable', 'numeric', 'min:0'],
@@ -37,10 +32,12 @@ class ListTrailsRequest extends FormRequest
             'requires_permit' => ['nullable', 'boolean'],
             'accommodation' => ['nullable', 'string'],
             'best_month' => ['nullable', 'integer', 'min:1', 'max:12'],
-            'sort' => ['nullable', 'string', 'in:created_at,updated_at,name,distance_km,duration_min,difficulty,published_at'],
+            'bounds' => ['nullable', 'string', 'regex:/^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*$/'],
+            'near_lat' => ['nullable', 'numeric', 'between:-90,90', 'required_with:near_lng'],
+            'near_lng' => ['nullable', 'numeric', 'between:-180,180', 'required_with:near_lat'],
+            'radius' => ['nullable', 'numeric', 'min:1', 'max:200'],
+            'sort' => ['nullable', 'string', 'in:name,distance_km,duration_min,difficulty'],
             'order' => ['nullable', 'string', 'in:asc,desc'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'page' => ['nullable', 'integer', 'min:1'],
         ];
     }
 
@@ -61,12 +58,16 @@ class ListTrailsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'created_before.after_or_equal' => 'End date must be after or equal to start date',
             'max_distance.gte' => 'Maximum distance must be greater than or equal to minimum distance',
             'max_duration.gte' => 'Maximum duration must be greater than or equal to minimum duration',
-            'sort.in' => 'Sort column must be one of: created_at, updated_at, name, distance_km, duration_min, difficulty, published_at',
+            'bounds.regex' => 'Bounds must be in format: sw_lat,sw_lng,ne_lat,ne_lng',
+            'near_lat.required_with' => 'Latitude is required when longitude is provided',
+            'near_lng.required_with' => 'Longitude is required when latitude is provided',
+            'near_lat.between' => 'Latitude must be between -90 and 90',
+            'near_lng.between' => 'Longitude must be between -180 and 180',
+            'radius.max' => 'Radius cannot exceed 200 km',
+            'sort.in' => 'Sort column must be one of: name, distance_km, duration_min, difficulty',
             'order.in' => 'Sort order must be asc or desc',
-            'per_page.max' => 'Cannot request more than 100 items per page',
         ];
     }
 }
