@@ -16,7 +16,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             RegionSeeder::class,
-            TrailSeeder::class,
         ]);
 
         $superAdminRole = Role::where('slug', 'super_admin')->first();
@@ -46,6 +45,12 @@ class DatabaseSeeder extends Seeder
         // 4 group hike organizers
         User::factory()->count(4)->create([
             'role_id' => $organizerRole->id,
+        ]);
+
+        $this->call([
+            AmenitySeeder::class,
+            TrailSeeder::class,
+            TrailMediaSeeder::class,
         ]);
     }
 }

@@ -43,7 +43,12 @@ class TrailFactory extends Factory
             'accommodation_types' => null,
             'latitude' => fake()->latitude(-4.5, 1.5),
             'longitude' => fake()->longitude(34, 41),
-            'location_name' => fake()->city(),
+            'location_name' => fake()->randomElement([
+                'Nairobi', 'Naivasha', 'Nakuru', 'Nanyuki', 'Nyeri', 'Meru',
+                'Kisumu', 'Eldoret', 'Kitale', 'Kakamega', 'Mombasa', 'Malindi',
+                'Machakos', 'Kajiado', 'Embu', 'Thika', 'Limuru', 'Kericho',
+                'Kisii', 'Homa Bay', 'Bungoma', 'Webuye', 'Athi River',
+            ]),
             'region_id' => Region::factory(),
             'route_a_name' => fake()->optional()->words(3, true),
             'route_a_description' => fake()->optional()->paragraph(),

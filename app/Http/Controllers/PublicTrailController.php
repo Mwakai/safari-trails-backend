@@ -128,6 +128,31 @@ class PublicTrailController extends Controller
         ]);
     }
 
+    public function regions(): JsonResponse
+    {
+        $regions = Cache::remember('public.trails.regions', 3600, function () {
+            $publishedScope = fn ($query) => $query->where('status', TrailStatus::Published);
+
+            return \App\Models\Region::query()
+                ->active()
+                ->ordered()
+                ->withCount(['trails' => $publishedScope])
+                ->get()
+                ->filter(fn ($region) => $region->trails_count > 0)
+                ->values()
+                ->map(fn ($region) => [
+                    'id' => $region->id,
+                    'slug' => $region->slug,
+                    'name' => $region->name,
+                    'trails_count' => $region->trails_count,
+                ]);
+        });
+
+        return $this->ok('Regions retrieved', [
+            'regions' => $regions,
+        ]);
+    }
+
     public function filters(): JsonResponse
     {
         $data = Cache::remember('trails.filter_options', 3600, function () {

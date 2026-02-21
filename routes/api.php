@@ -16,6 +16,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // Public routes (no authentication required)
 Route::prefix('public')->group(function () {
     Route::get('/trails/map', [PublicTrailController::class, 'mapMarkers']);
+    Route::get('/trails/regions', [PublicTrailController::class, 'regions']);
     Route::get('/trails/filters', [PublicTrailController::class, 'filters']);
     Route::get('/trails', [PublicTrailController::class, 'index']);
     Route::get('/trails/{slug}', [PublicTrailController::class, 'show']);

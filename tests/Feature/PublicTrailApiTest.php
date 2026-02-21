@@ -302,6 +302,79 @@ describe('related trails', function () {
     });
 });
 
+describe('public regions', function () {
+    it('does not require authentication', function () {
+        $response = $this->getJson('/api/public/trails/regions');
+
+        $response->assertSuccessful();
+    });
+
+    it('returns correct structure', function () {
+        $region = Region::factory()->withName('Central')->create();
+        Trail::factory()->published()->withRegion($region)->create();
+
+        $response = $this->getJson('/api/public/trails/regions');
+
+        $response->assertSuccessful()
+            ->assertJsonStructure([
+                'data' => [
+                    'regions' => [
+                        '*' => ['id', 'slug', 'name', 'trails_count'],
+                    ],
+                ],
+            ]);
+    });
+
+    it('only includes regions with published trails', function () {
+        $central = Region::factory()->withName('Central')->create();
+        $nairobi = Region::factory()->withName('Nairobi')->create();
+        $coast = Region::factory()->withName('Coast')->create();
+        Trail::factory()->published()->withRegion($central)->create();
+        Trail::factory()->published()->withRegion($nairobi)->create();
+        Trail::factory()->withRegion($coast)->create(); // draft
+
+        $response = $this->getJson('/api/public/trails/regions');
+
+        $slugs = collect($response->json('data.regions'))->pluck('slug');
+        expect($slugs)->toContain('central')
+            ->toContain('nairobi')
+            ->not->toContain('coast');
+    });
+
+    it('returns correct published trail count per region', function () {
+        $central = Region::factory()->withName('Central')->create();
+        Trail::factory()->published()->withRegion($central)->count(4)->create();
+        Trail::factory()->withRegion($central)->create(); // draft should not count
+
+        $response = $this->getJson('/api/public/trails/regions');
+
+        $centralRegion = collect($response->json('data.regions'))->firstWhere('slug', 'central');
+        expect($centralRegion['trails_count'])->toBe(4);
+    });
+
+    it('excludes inactive regions', function () {
+        $active = Region::factory()->withName('Central')->create();
+        $inactive = Region::factory()->inactive()->withName('Hidden Region')->create();
+        Trail::factory()->published()->withRegion($active)->create();
+        Trail::factory()->published()->withRegion($inactive)->create();
+
+        $response = $this->getJson('/api/public/trails/regions');
+
+        $slugs = collect($response->json('data.regions'))->pluck('slug');
+        expect($slugs)->toContain('central')
+            ->not->toContain('hidden-region');
+    });
+
+    it('returns empty list when no published trails exist', function () {
+        Region::factory()->withName('Central')->create();
+
+        $response = $this->getJson('/api/public/trails/regions');
+
+        $response->assertSuccessful()
+            ->assertJsonCount(0, 'data.regions');
+    });
+});
+
 describe('filter options', function () {
     it('does not require authentication', function () {
         $response = $this->getJson('/api/public/trails/filters');
