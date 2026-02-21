@@ -80,22 +80,22 @@ describe('sorting', function () {
 
 describe('search', function () {
     it('searches by first_name', function () {
-        User::factory()->create(['first_name' => 'John']);
+        User::factory()->create(['first_name' => 'Zxkfmzqjb']);
         User::factory()->create(['first_name' => 'Jane']);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/users?search=John');
+            ->getJson('/api/admin/users?search=Zxkfmzqjb');
 
         $response->assertOk()
             ->assertJsonCount(1, 'data.users');
     });
 
     it('searches by last_name', function () {
-        User::factory()->create(['last_name' => 'Smith']);
+        User::factory()->create(['last_name' => 'Xmqzfvblp']);
         User::factory()->create(['last_name' => 'Doe']);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/users?search=Smith');
+            ->getJson('/api/admin/users?search=Xmqzfvblp');
 
         $response->assertOk()
             ->assertJsonCount(1, 'data.users');

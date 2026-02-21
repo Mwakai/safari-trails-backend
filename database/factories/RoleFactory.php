@@ -18,7 +18,7 @@ class RoleFactory extends Factory
      */
     public function definition(): array
     {
-        $name = fake()->unique()->jobTitle();
+        $name = fake()->unique()->words(3, true);
 
         return [
             'name' => $name,
@@ -94,10 +94,11 @@ class RoleFactory extends Factory
             'description' => 'Organize and manage group hike events',
             'permissions' => [
                 'media.view',
-                'group_hikes.view_own',
+                'companies.view',
+                'group_hikes.view',
                 'group_hikes.create',
-                'group_hikes.update_own',
-                'group_hikes.delete_own',
+                'group_hikes.update',
+                'group_hikes.delete',
             ],
             'is_system' => true,
         ]);

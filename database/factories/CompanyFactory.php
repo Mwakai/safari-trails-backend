@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\CompanyStatus;
 use App\Models\Company;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -24,8 +23,28 @@ class CompanyFactory extends Factory
         return [
             'name' => $name,
             'slug' => Str::slug($name),
-            'status' => CompanyStatus::Active,
+            'description' => fake()->paragraph(),
+            'logo_id' => null,
+            'cover_image_id' => null,
+            'website' => fake()->optional()->url(),
+            'email' => fake()->optional()->companyEmail(),
+            'phone' => fake()->optional()->phoneNumber(),
+            'whatsapp' => null,
+            'instagram' => null,
+            'facebook' => null,
+            'is_verified' => false,
+            'is_active' => true,
         ];
+    }
+
+    /**
+     * Indicate that the company is verified.
+     */
+    public function verified(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_verified' => true,
+        ]);
     }
 
     /**
@@ -34,7 +53,7 @@ class CompanyFactory extends Factory
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => CompanyStatus::Inactive,
+            'is_active' => false,
         ]);
     }
 }

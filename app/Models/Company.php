@@ -2,19 +2,30 @@
 
 namespace App\Models;
 
-use App\Enums\CompanyStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Company extends Model
 {
     use HasFactory;
 
+    /** @var list<string> */
     protected $fillable = [
         'name',
         'slug',
-        'status',
+        'description',
+        'logo_id',
+        'cover_image_id',
+        'website',
+        'email',
+        'phone',
+        'whatsapp',
+        'instagram',
+        'facebook',
+        'is_verified',
+        'is_active',
     ];
 
     /**
@@ -23,7 +34,8 @@ class Company extends Model
     protected function casts(): array
     {
         return [
-            'status' => CompanyStatus::class,
+            'is_verified' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -35,8 +47,32 @@ class Company extends Model
         return $this->hasMany(User::class);
     }
 
+    /**
+     * @return BelongsTo<Media, $this>
+     */
+    public function logo(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'logo_id');
+    }
+
+    /**
+     * @return BelongsTo<Media, $this>
+     */
+    public function coverImage(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'cover_image_id');
+    }
+
+    /**
+     * @return HasMany<GroupHike, $this>
+     */
+    public function groupHikes(): HasMany
+    {
+        return $this->hasMany(GroupHike::class);
+    }
+
     public function isActive(): bool
     {
-        return $this->status === CompanyStatus::Active;
+        return $this->is_active;
     }
 }

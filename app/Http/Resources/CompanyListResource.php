@@ -9,7 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * @mixin \App\Models\Company
  */
-class CompanyResource extends JsonResource
+class CompanyListResource extends JsonResource
 {
     /**
      * @return array<string, mixed>
@@ -20,20 +20,10 @@ class CompanyResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
-            'description' => $this->description,
-            'logo' => new MediaResource($this->whenLoaded('logo')),
-            'cover_image' => new MediaResource($this->whenLoaded('coverImage')),
-            'website' => $this->website,
-            'email' => $this->email,
-            'phone' => $this->phone,
-            'whatsapp' => $this->whatsapp,
-            'instagram' => $this->instagram,
-            'facebook' => $this->facebook,
+            'logo_thumbnail' => $this->whenLoaded('logo', fn () => $this->logo?->getVariantUrl('thumbnail')),
             'is_verified' => $this->is_verified,
             'is_active' => $this->is_active,
             'hike_count' => $this->groupHikes()->where('status', GroupHikeStatus::Published)->count(),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
         ];
     }
 }

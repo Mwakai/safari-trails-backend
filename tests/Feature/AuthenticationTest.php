@@ -152,11 +152,11 @@ describe('list users', function () {
 
     it('searches users by name', function () {
         $superAdmin = User::factory()->withRole($this->superAdminRole)->create();
-        User::factory()->withRole($this->adminRole)->create(['first_name' => 'John', 'last_name' => 'Doe']);
+        User::factory()->withRole($this->adminRole)->create(['first_name' => 'Zxkfmzqjb', 'last_name' => 'Doe']);
         User::factory()->withRole($this->adminRole)->create(['first_name' => 'Jane', 'last_name' => 'Smith']);
 
         $response = $this->actingAs($superAdmin)
-            ->getJson('/api/admin/users?search=John');
+            ->getJson('/api/admin/users?search=Zxkfmzqjb');
 
         $response->assertOk()
             ->assertJsonCount(1, 'data.users');
