@@ -88,7 +88,13 @@ class GroupHikeService
     public function update(GroupHike $hike, array $data, User $user): GroupHike
     {
         return DB::transaction(function () use ($hike, $data, $user) {
-            $fields = collect($data)->except(['images'])->toArray();
+            $notNullable = ['organizer_id', 'start_date', 'start_time'];
+
+            $fields = collect($data)
+                ->except(['images'])
+                ->reject(fn ($value, $key) => is_null($value) && in_array($key, $notNullable))
+                ->toArray();
+
             $fields['updated_by'] = $user->id;
 
             if (isset($fields['slug']) && $fields['slug'] !== $hike->slug) {
