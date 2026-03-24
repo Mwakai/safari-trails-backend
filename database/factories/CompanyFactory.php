@@ -18,17 +18,17 @@ class CompanyFactory extends Factory
      */
     public function definition(): array
     {
-        $name = fake()->unique()->company();
+        $name = $this->faker()->unique()->company();
 
         return [
             'name' => $name,
             'slug' => Str::slug($name),
-            'description' => fake()->paragraph(),
+            'description' => $this->faker()->paragraph(),
             'logo_id' => null,
             'cover_image_id' => null,
-            'website' => fake()->optional()->url(),
-            'email' => fake()->optional()->companyEmail(),
-            'phone' => fake()->optional()->phoneNumber(),
+            'website' => $this->faker()->optional()->url(),
+            'email' => $this->faker()->optional()->companyEmail(),
+            'phone' => $this->faker()->optional()->phoneNumber(),
             'whatsapp' => null,
             'instagram' => null,
             'facebook' => null,
