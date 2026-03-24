@@ -17,14 +17,14 @@ class ActivityLogFactory extends Factory
     public function definition(): array
     {
         return [
-            'log_name' => fake()->randomElement(['trails', 'users', 'amenities', 'media']),
-            'event' => fake()->randomElement(['created', 'updated', 'deleted', 'status_changed']),
+            'log_name' => $this->faker()->randomElement(['trails', 'users', 'amenities', 'media']),
+            'event' => $this->faker()->randomElement(['created', 'updated', 'deleted', 'status_changed']),
             'subject_type' => null,
             'subject_id' => null,
             'causer_type' => null,
             'causer_id' => null,
             'properties' => null,
-            'created_at' => fake()->dateTimeBetween('-30 days'),
+            'created_at' => $this->faker()->dateTimeBetween('-30 days'),
         ];
     }
 
