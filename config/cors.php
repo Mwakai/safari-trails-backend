@@ -7,8 +7,10 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => array_filter(array_map('trim', [
-        env('CMS_URL', 'http://localhost:5173'),
-        env('PUBLIC_SITE_URL', 'http://localhost:5174'),
+        env('CMS_URL'),
+        env('PUBLIC_SITE_URL'),
+        // env('CMS_URL', 'http://localhost:5173'),
+        // env('PUBLIC_SITE_URL', 'http://localhost:5174'),
     ])),
 
     'allowed_origins_patterns' => [],
