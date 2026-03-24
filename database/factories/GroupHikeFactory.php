@@ -28,32 +28,32 @@ class GroupHikeFactory extends Factory
         return [
             'title' => ucwords($title),
             'slug' => Str::slug($title),
-            'description' => $this->faker()->paragraphs(3, true),
-            'short_description' => $this->faker()->sentence(15),
+            'description' => $this->faker->paragraphs(3, true),
+            'short_description' => $this->faker->sentence(15),
             'organizer_id' => User::factory(),
             'company_id' => null,
             'trail_id' => null,
-            'custom_location_name' => $this->faker()->city().' Trailhead',
-            'latitude' => $this->faker()->latitude(-4.5, 1.5),
-            'longitude' => $this->faker()->longitude(34, 41),
+            'custom_location_name' => $this->faker->city().' Trailhead',
+            'latitude' => $this->faker->latitude(-4.5, 1.5),
+            'longitude' => $this->faker->longitude(34, 41),
             'region_id' => Region::factory(),
-            'meeting_point' => $this->faker()->sentence(),
+            'meeting_point' => $this->faker->sentence(),
             'start_date' => $startDate->format('Y-m-d'),
-            'start_time' => $this->faker()->time('H:i:s', '08:00:00'),
+            'start_time' => $this->faker->time('H:i:s', '08:00:00'),
             'end_date' => null,
             'end_time' => null,
-            'max_participants' => $this->faker()->optional()->numberBetween(5, 50),
-            'registration_url' => $this->faker()->optional()->url(),
+            'max_participants' => $this->faker->optional()->numberBetween(5, 50),
+            'registration_url' => $this->faker->optional()->url(),
             'registration_deadline' => null,
             'registration_notes' => null,
             'price' => null,
             'price_currency' => 'KES',
             'price_notes' => null,
-            'contact_name' => $this->faker()->name(),
-            'contact_email' => $this->faker()->email(),
-            'contact_phone' => $this->faker()->phoneNumber(),
+            'contact_name' => $this->faker->name(),
+            'contact_email' => $this->faker->email(),
+            'contact_phone' => $this->faker->phoneNumber(),
             'contact_whatsapp' => null,
-            'difficulty' => $this->faker()->randomElement(TrailDifficulty::cases()),
+            'difficulty' => $this->faker->randomElement(TrailDifficulty::cases()),
             'featured_image_id' => null,
             'is_featured' => false,
             'is_recurring' => false,
@@ -80,7 +80,7 @@ class GroupHikeFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => GroupHikeStatus::Cancelled,
             'cancelled_at' => now(),
-            'cancellation_reason' => $this->faker()->sentence(),
+            'cancellation_reason' => $this->faker->sentence(),
         ]);
     }
 
@@ -124,9 +124,9 @@ class GroupHikeFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'trail_id' => null,
-            'custom_location_name' => $this->faker()->city().' Trailhead',
-            'latitude' => $this->faker()->latitude(-4.5, 1.5),
-            'longitude' => $this->faker()->longitude(34, 41),
+            'custom_location_name' => $this->faker->city().' Trailhead',
+            'latitude' => $this->faker->latitude(-4.5, 1.5),
+            'longitude' => $this->faker->longitude(34, 41),
         ]);
     }
 
@@ -155,8 +155,8 @@ class GroupHikeFactory extends Factory
 
     public function multiDay(): static
     {
-        $start = $this->faker()->dateTimeBetween('+1 week', '+2 months');
-        $end = $this->faker()->dateTimeBetween($start, '+3 months');
+        $start = $this->faker->dateTimeBetween('+1 week', '+2 months');
+        $end = $this->faker->dateTimeBetween($start, '+3 months');
 
         return $this->state(fn (array $attributes) => [
             'start_date' => $start->format('Y-m-d'),
@@ -167,14 +167,14 @@ class GroupHikeFactory extends Factory
     public function upcoming(): static
     {
         return $this->state(fn (array $attributes) => [
-            'start_date' => $this->faker()->dateTimeBetween('+1 day', '+3 months')->format('Y-m-d'),
+            'start_date' => $this->faker->dateTimeBetween('+1 day', '+3 months')->format('Y-m-d'),
         ]);
     }
 
     public function past(): static
     {
         return $this->state(fn (array $attributes) => [
-            'start_date' => $this->faker()->dateTimeBetween('-6 months', '-1 day')->format('Y-m-d'),
+            'start_date' => $this->faker->dateTimeBetween('-6 months', '-1 day')->format('Y-m-d'),
             'end_date' => null,
         ]);
     }

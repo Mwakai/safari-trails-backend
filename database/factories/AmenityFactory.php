@@ -17,7 +17,7 @@ class AmenityFactory extends Factory
      */
     public function definition(): array
     {
-        $name = $this->faker()->unique()->randomElement([
+        $name = $this->faker->unique()->randomElement([
             'Waterfall',
             'Camping',
             'Bird Watching',
